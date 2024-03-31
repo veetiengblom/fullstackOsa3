@@ -1,30 +1,9 @@
+require("dotenv").config();
 const express = require("express");
 var morgan = require("morgan");
 const cors = require("cors");
+const Person = require("./models/person");
 const app = express();
-
-let persons = [
-  {
-    id: "1",
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: "2",
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: "3",
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: "4",
-    name: "Marry Poppendick",
-    number: "39-23-6423122",
-  },
-];
 
 app.use(express.static("dist"));
 app.use(cors());
@@ -32,10 +11,14 @@ app.use(express.json());
 app.use(morgan("tiny"));
 
 app.get("/api/persons", (req, res) => {
-  res.send(persons);
+  console.log("Phonebook:");
+  Person.find({}).then((persons) => {
+    console.log(persons);
+    res.json(persons);
+  });
 });
 
-app.post("/api/persons", (req, res) => {
+app.post("/api/persons", async (req, res) => {
   console.log(req.body);
   const { name, number } = req.body;
   if (!name || !number) {
@@ -43,21 +26,25 @@ app.post("/api/persons", (req, res) => {
       error: "content missing",
     });
   }
-  const checker = persons.find((person) => person.name === name);
+  const checker = await Person.findOne({ name: name });
+  console.log("checker", checker);
   if (checker) {
     return res.status(409).json({
       error: "Name already in use",
     });
   }
   const id = String(Math.floor(Math.random() * 100000));
-  const obj = {
+  const person = new Person({
     id: id,
     name: name,
     number: number,
-  };
+  });
+  console.log(person);
 
-  persons.push(obj);
-  res.json(obj);
+  person.save().then((savedPerson) => {
+    console.log("person added");
+    res.json(savedPerson);
+  });
 });
 
 app.get("/info", (req, res) => {
@@ -72,12 +59,9 @@ app.get("/info", (req, res) => {
 
 app.get("/api/persons/:id", (req, res) => {
   const id = req.params.id;
-  const person = persons.find((person) => person.id === id);
-  if (person) {
+  Person.findById(id).then((person) => {
     res.json(person);
-  } else {
-    res.status(404).end();
-  }
+  });
 });
 
 app.delete("/api/persons/:id", (req, res) => {
@@ -87,7 +71,7 @@ app.delete("/api/persons/:id", (req, res) => {
   res.status(204).end();
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
