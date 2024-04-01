@@ -27,15 +27,12 @@ app.post("/api/persons", async (req, res) => {
     });
   }
   const checker = await Person.findOne({ name: name });
-  console.log("checker", checker);
   if (checker) {
     return res.status(409).json({
       error: "Name already in use",
     });
   }
-  const id = String(Math.floor(Math.random() * 100000));
   const person = new Person({
-    id: id,
     name: name,
     number: number,
   });
@@ -48,13 +45,13 @@ app.post("/api/persons", async (req, res) => {
 });
 
 app.get("/info", (req, res) => {
-  const length = persons.length;
-  console.log(length);
-  const dateNow = new Date();
-  console.log(dateNow);
-  res.write(`Phonebook has info for ${length} people\n`);
-  res.write(`${dateNow}`);
-  res.end();
+  Person.find({}).then((person) => {
+    const length = person.length;
+    const dateNow = new Date();
+    res.write(`Phonebook has info for ${length} people\n`);
+    res.write(`${dateNow}`);
+    res.end();
+  });
 });
 
 app.get("/api/persons/:id", (req, res) => {
@@ -66,9 +63,10 @@ app.get("/api/persons/:id", (req, res) => {
 
 app.delete("/api/persons/:id", (req, res) => {
   const id = req.params.id;
-  persons = persons.filter((person) => person.id !== id);
-
-  res.status(204).end();
+  Person.deleteOne({ _id: id }).then((deletedPerson) => {
+    console.log("deleted", deletedPerson);
+    res.status(204).end();
+  });
 });
 
 const PORT = process.env.PORT;
